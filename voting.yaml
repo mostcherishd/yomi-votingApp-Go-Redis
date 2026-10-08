@@ -1,18 +1,22 @@
 version: "3.8"
 services:
-  db:
-    container_name: db
-    image: postgres:alpine
+
+  database:
+    container_name: database
+    image: postgres:15-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - "db-data:/var/lib/postgresql"
+      - "./database-data:/var/lib/postgresql/data"  
     networks:
       - backend
+
   cache:
     container_name: redis
     image: redis:alpine
+    volumes:
+      - "./healthchecks:/healthchecks"
     networks:
       - backend
 
@@ -23,11 +27,11 @@ services:
       dockerfile: Dockerfile
     image: worker-app
     depends_on:
-      - db
+      - database
       - cache
     networks:
       - backend
-
+  
   voting:
     container_name: voting
     build:
@@ -35,15 +39,15 @@ services:
       dockerfile: Dockerfile
     image: voting-app
     depends_on:
-      - db
+      - database
       - cache
       - worker
     networks:
       - frontend
       - backend
     ports:
-      - 8081:80
-
+      - "8081:80"
+ 
   result:
     container_name: result
     build:
@@ -51,17 +55,19 @@ services:
       dockerfile: Dockerfile
     image: result-app
     depends_on:
-      - db
+      - database
       - cache
       - worker
     networks:
-      - frontend
       - backend
+      - frontend
     ports:
-      - 8080:80
-networks:
-  backend:
-  frontend:
+      - "8080:80"
 
 volumes:
-  db-data:
+  database-data:
+  healthchecks:
+
+networks:
+  frontend:
+  backend:
